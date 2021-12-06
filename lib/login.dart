@@ -143,7 +143,6 @@ class LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
   Future<void> _login(String email, String password) async {
     Map<String, String> headers = {'user-device': '97a95688f6ad1ab4'};
 
@@ -155,27 +154,15 @@ class LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
     try {
-      final res = await Configuration().login(email, password);
-      if (res is String) {
-        var error = res;
-        final snackBar = SnackBar(
-          content: Text(
-            error,
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.red,
-        );
-
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-        return;
-      }
-
+      final res = await http.post(
+        Uri.parse('$baseUrl/api/v1/employee/authentication/login'),
+        headers: headers,
+        body: body,
+      );
 
       print(res.statusCode);
       print(res.body.toString());
       var response = jsonDecode(res.body);
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', response['token']);
 
       if (res.statusCode == 200) {
         Navigator.pushReplacement(

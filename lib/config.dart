@@ -1,16 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:geocoding/geocoding.dart';
 
 class Configuration {
   final String baseUrl = 'https://krista-staging.trackingworks.io';
@@ -58,30 +52,26 @@ class Configuration {
 
       if (res.statusCode != 200) {
         var response = jsonDecode(res.body);
-        final snackBar = _buildSnackbar(response['meta']['error']);
+        final snackBar = buildSnackbar(response['meta']['error']);
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
       }
       return res;
     } catch (e) {
-      final snackBar = _buildSnackbar(e.toString());
+      final snackBar = buildSnackbar(e.toString());
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
       return e.toString();
     }
   }
 
   Future<dynamic> postAttendance(BuildContext context) async {
-    await [
-      Permission.location,
-    ].request();
+
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String token = prefs.getString('token')!;
-    String uuid = prefs.getString('uuid') ?? '-';
+    String uuid = '3be04337da34cd62';
 
     try {
-      var res = await uploadImage(context);
-      var responseImage = jsonDecode(res);
-      String imageId = responseImage['data']['id'].toString();
+
 
       Map<String, String> headers = {
         'Authorization': 'Bearer $token',
@@ -93,36 +83,14 @@ class Configuration {
       String date = formatter.format(DateTime.now());
       String clock = clockFormatter.format(DateTime.now());
 
-      Position position = await Geolocator.getCurrentPosition();
-      double latitude = position.latitude;
-      double longitude = position.longitude;
-
-      String address = '-';
-      try {
-        List<Placemark> placemarks = await placemarkFromCoordinates(
-            position.latitude, position.longitude,
-            localeIdentifier: "id");
-        Placemark place = placemarks[0];
-        address = place.street ?? '-';
-      } catch (e) {
-        address = '-';
-      }
-
-      print('address $address');
-
       Map<String, dynamic> body = {
         'date': date.toString(),
         'clock': clock.toString(),
         'type': 'normal',
-        'notes': '-',
-        'latitude': latitude.toString(),
-        'longitude': longitude.toString(),
-        'image_id': imageId.toString(),
-        'address': address,
       };
 
       http.Response resData = await http.post(
-          Uri.parse('$baseUrl/api/v1/employee/attendance-clock'),
+          Uri.parse('$baseUrl/api/v1/employee/attendance-check-clocked'),
           headers: headers,
           body: body);
 
@@ -131,56 +99,16 @@ class Configuration {
         print(date);
         var response = jsonDecode(resData.body);
         print(response['meta']);
-        final snackBar = _buildSnackbar(response['meta']['message']);
+        final snackBar = buildSnackbar(response['meta']['message']);
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
       }
       return resData;
     } catch (e) {
-      print('error upload image 2');
-      final snackBar = _buildSnackbar(e.toString());
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-      return e.toString();
     }
   }
-
-  Future<dynamic> uploadImage(BuildContext context) async {
-    final picker = ImagePicker();
-    final pickedFile =
-        await picker.pickImage(source: ImageSource.gallery, maxHeight: 200);
-    File file = File(pickedFile!.path);
-
-    try {
-      var res = await uploadImageHTTP(
-          file, '$baseUrl/api/v1/employee/attendance-image');
-      return res;
-    } catch (e) {
-      print('error upload image');
-      final snackBar = _buildSnackbar(e.toString());
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-      return e.toString();
-    }
   }
 
-  Future<String?> uploadImageHTTP(file, url) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String token = prefs.getString('token')!;
-    String uuid = prefs.getString('uuid') ?? '-';
-
-    Map<String, String> headers = {
-      'Authorization': 'Bearer $token',
-      'user-device': uuid
-    };
-
-    var request = http.MultipartRequest('POST', Uri.parse(url));
-    request.headers.addAll(headers);
-    request.files.add(await http.MultipartFile.fromPath('image', file.path));
-    var response = await request.send();
-    var responseData = await response.stream.toBytes();
-    var responseString = String.fromCharCodes(responseData);
-    return responseString;
-  }
-
-  SnackBar _buildSnackbar(String text) {
+  SnackBar buildSnackbar(String text) {
     return SnackBar(
       content: Text(
         text,
@@ -189,4 +117,4 @@ class Configuration {
       backgroundColor: Colors.red,
     );
   }
-}
+

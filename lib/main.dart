@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:intl/date_symbol_data_local.dart';
@@ -142,8 +143,9 @@ class _HomeScreen extends State<HomeScreen> {
               ),
             ],
           )),
-      body: FutureBuilder<void>(
-        builder: (BuildContext context, AsyncSnapshot<void> snapshot) {
+      body: FutureBuilder<bool>(
+        future: _getSchedule(),
+        builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
           switch (snapshot.connectionState) {
             case ConnectionState.waiting:
               return Center(child: CircularProgressIndicator());
@@ -191,6 +193,27 @@ class _HomeScreen extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  Future<bool> _getSchedule() async {
+    try {
+      var res = await Configuration().getSchedule(context);
+      if (res is String) {
+        return false;
+      } else {
+        var response = jsonDecode(res.body);
+        String start = response['data'][0]['shift']['time_start'];
+        String end = response['data'][0]['shift']['time_end'];
+        start = start.substring(0, start.length - 3);
+        end = end.substring(0, end.length - 3);
+        _shiftPeriod = '$start - $end';
+        return true;
+      }
+    } catch (e) {
+      // final snackBar = Configuration().buildSnackbar(e.toString());
+      // ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      return false;
+    }
   }
 
   Widget buildCard({
@@ -295,23 +318,21 @@ class _HomeScreen extends State<HomeScreen> {
                                 minRadius: 25,
                               ),
                               Container(
-                                padding: EdgeInsets.only(left: 5),
+                                padding: EdgeInsets.only(left: 15),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
+                                      mainAxisAlignment: MainAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text('Halo,'),
-
-                                        Text('Salma Muntaz Shaumi'),
+                                        Text('Halo, Salma Mumtaz Saomi'),
                                       ],
                                     ),
-                                    Container(
-                                      padding: EdgeInsets.only(left: 10),
-                                      child: Text(
-                                        'salmamumtazsaomi@gmail.com',
-                                        style: TextStyle(fontSize: 14),
-                                      ),
+                                    Text(
+                                      'salmamumtazsaomi@gmail.com',
+                                      style: TextStyle(fontSize: 14),
                                     )
                                   ],
                                 ),
